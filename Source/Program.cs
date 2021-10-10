@@ -142,7 +142,9 @@ namespace Discord_IRC_Sharp
             string ircChannel = config.channels.FirstOrDefault(x => x.Value == message.Channel.Id).Key;
             if(ircChannel == null) // If we failed to get the IRC channel
                 return Task.CompletedTask;
-            irc.SendMessage(SendType.Message, ircChannel, ircMessage);
+
+            if(!string.IsNullOrWhiteSpace(message.Content))
+                irc.SendMessage(SendType.Message, ircChannel, ircMessage);
 
             // Send attachments if applicable
             if(message.Attachments != null) {
