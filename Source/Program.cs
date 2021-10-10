@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 
 using Discord;
 using Discord.WebSocket;
+using Discord.Webhook;
 
 namespace Discord_IRC_Sharp
 {
@@ -25,6 +26,8 @@ namespace Discord_IRC_Sharp
         static DiscordSocketClient discord;
         static SocketGuild guild;
         static Dictionary<string, SocketTextChannel> discordChannels = new Dictionary<string, SocketTextChannel>();
+        static Dictionary<string, DiscordWebhookClient> discordWebhooks = new Dictionary<string, DiscordWebhookClient>();
+        static Dictionary<ulong, string> webhookAvatars = new Dictionary<ulong, string>();
         static bool isDiscordReady;
         static Dictionary<string, int> discordColours = new Dictionary<string, int>();
 
@@ -75,7 +78,19 @@ namespace Discord_IRC_Sharp
                 SocketTextChannel discordChannel = (SocketTextChannel)discord.GetChannel(channel.Value);
                 if(discordChannel != null) {
                     Log.Write("Found Discord channel: " + discordChannel.Name);
-                    discordChannels.Add(channel.Key, discordChannel);
+
+                    // Add the channel or webhook according to the config
+                    if(config.formatting.useWebhooks) {
+                        // Get or create the webhook
+                        var webhook = discordChannel.GetWebhooksAsync().Result.FirstOrDefault(x => x.Name == "Discord-IRC-Relay");
+                        if(webhook == null)
+                            webhook = await discordChannel.CreateWebhookAsync("Discord-IRC-Relay");
+                        
+                        // Add the webhook
+                        discordWebhooks.Add(channel.Key, new DiscordWebhookClient(webhook));
+                    }
+                    else
+                        discordChannels.Add(channel.Key, discordChannel);
                 }
                 else
                     Log.Write("Could not find Discord channel: " + channel.Value);
@@ -134,13 +149,6 @@ namespace Discord_IRC_Sharp
 
         private static void OnIRCMessage(object sender, IrcEventArgs e)
         {
-            // Get the associated Discord channel
-            SocketTextChannel discordChannel = discordChannels[e.Data.Channel];
-            if(discordChannel == null) { 
-                Log.Write($"Could not get Discord channel for #{e.Data.Channel} on IRC");
-                return;
-            }
-
             // Store the message content for it to be modified later
             string messageContent = e.Data.Message.Replace("@", "(at)");
 
@@ -149,14 +157,34 @@ namespace Discord_IRC_Sharp
                 string firstWord = e.Data.Message.Split(' ').FirstOrDefault();
                 if(firstWord != null && firstWord.EndsWith(':')) { // If it's a mention
                     // Search for the user
-                    SocketUser user = discordChannel.Guild.Users.FirstOrDefault(x => x.Username.ToLower() == firstWord.Replace(":", "").ToLower());
+                    SocketUser user = discord.GetGuild(config.discordServerId).Users.FirstOrDefault(x => x.Username.ToLower() == firstWord.Replace(":", "").ToLower());
                     if(user != null)
                         messageContent = messageContent.Replace(firstWord, user.Mention);
                 }
             }
 
             // Send the message to Discord
-            discordChannel.SendMessageAsync($"{config.formatting.discordPrefix.Replace("%u", e.Data.Nick)} {messageContent}");
+
+            if(config.formatting.useWebhooks) {
+                // Get the avatar, if applicable
+                string avatarUrl = null;
+                SocketUser user = discord.GetGuild(config.discordServerId).Users.FirstOrDefault(x => x.Username.ToLower() == e.Data.Nick.ToLower());
+                if(user != null)
+                    avatarUrl = user.GetAvatarUrl();
+
+                // Send the message
+                discordWebhooks[e.Data.Channel].SendMessageAsync(messageContent, username: e.Data.Nick, avatarUrl: avatarUrl);
+                return;
+            }
+            else {
+                // Get the associated Discord channel
+                SocketTextChannel discordChannel = discordChannels[e.Data.Channel];
+                if(discordChannel == null) { 
+                    Log.Write($"Could not get Discord channel for #{e.Data.Channel} on IRC");
+                    return;
+                }
+                discordChannel.SendMessageAsync($"{config.formatting.discordPrefix.Replace("%u", e.Data.Nick)} {messageContent}");
+            }
         }
     }
 
@@ -179,5 +207,6 @@ namespace Discord_IRC_Sharp
         public string discordPrefix { get; set; } = "**<%u/IRC>**";
         public bool nicknameColours { get; set; } = true;
         public bool ircMentionsDiscord { get; set; } = false;
+        public bool useWebhooks { get; set; } = false;
     }
 }
