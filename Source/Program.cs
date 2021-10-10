@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 using Meebey.SmartIrc4net;
 using Newtonsoft.Json;
@@ -121,11 +120,14 @@ namespace Discord_IRC_Sharp
                 discordColours.Add(message.Author.Username, colour);
             }
 
+            // Store the message content for it to be modified later
+            string ircMessage = $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{message.Author.Username}> {message.Content}";
+
             // Send the message to IRC
             string ircChannel = config.channels.FirstOrDefault(x => x.Value == message.Channel.Id).Key;
             if(ircChannel == null) // If we failed to get the IRC channel
                 return Task.CompletedTask;
-            irc.SendMessage(SendType.Message, ircChannel, $"<{colour}{message.Author.Username}> {message.Content}");
+            irc.SendMessage(SendType.Message, ircChannel, ircMessage);
 
             return Task.CompletedTask;
         }
@@ -143,16 +145,18 @@ namespace Discord_IRC_Sharp
             string messageContent = e.Data.Message.Replace("@", "(at)");
 
             // Check for user mentions
-            string firstWord = e.Data.Message.Split(' ').FirstOrDefault();
-            if(firstWord != null && firstWord.EndsWith(':')) { // If it's a mention
-                // Search for the user
-                SocketUser user = discordChannel.Guild.Users.FirstOrDefault(x => x.Username.ToLower() == firstWord.Replace(":", "").ToLower());
-                if(user != null)
-                    messageContent = messageContent.Replace(firstWord, user.Mention);
+            if(config.formatting.ircMentionsDiscord) {
+                string firstWord = e.Data.Message.Split(' ').FirstOrDefault();
+                if(firstWord != null && firstWord.EndsWith(':')) { // If it's a mention
+                    // Search for the user
+                    SocketUser user = discordChannel.Guild.Users.FirstOrDefault(x => x.Username.ToLower() == firstWord.Replace(":", "").ToLower());
+                    if(user != null)
+                        messageContent = messageContent.Replace(firstWord, user.Mention);
+                }
             }
 
             // Send the message to Discord
-            discordChannel.SendMessageAsync($"**<{e.Data.Nick}/IRC>** {messageContent}");
+            discordChannel.SendMessageAsync($"{config.formatting.discordPrefix.Replace("%u", e.Data.Nick)} {messageContent}");
         }
     }
 
@@ -166,7 +170,14 @@ namespace Discord_IRC_Sharp
         public string IRCNickname { get; set; } = "Discord-IRC";
         public string IRCIp { get; set; } = "irc.example.com";
         public int IRCport { get; set; } = 6667;
-
         public Dictionary<string, ulong> channels { get; set; } = new Dictionary<string, ulong>();
+        public FormattingConfig formatting { get; set; } = new FormattingConfig();
+    }
+
+    class FormattingConfig
+    {
+        public string discordPrefix { get; set; } = "**<%u/IRC>**";
+        public bool nicknameColours { get; set; } = true;
+        public bool ircMentionsDiscord { get; set; } = false;
     }
 }
