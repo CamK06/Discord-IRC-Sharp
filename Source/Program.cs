@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using Meebey.SmartIrc4net;
 using Newtonsoft.Json;
@@ -138,8 +139,20 @@ namespace Discord_IRC_Sharp
                 return;
             }
 
+            // Store the message content for it to be modified later
+            string messageContent = e.Data.Message.Replace("@", "(at)");
+
+            // Check for user mentions
+            string firstWord = e.Data.Message.Split(' ').FirstOrDefault();
+            if(firstWord != null && firstWord.EndsWith(':')) { // If it's a mention
+                // Search for the user
+                SocketUser user = discordChannel.Guild.Users.FirstOrDefault(x => x.Username.ToLower() == firstWord.Replace(":", "").ToLower());
+                if(user != null)
+                    messageContent = messageContent.Replace(firstWord, user.Mention);
+            }
+
             // Send the message to Discord
-            discordChannel.SendMessageAsync($"**<{e.Data.Nick}/IRC>** {e.Data.Message.Replace("@", "(at)")}");
+            discordChannel.SendMessageAsync($"**<{e.Data.Nick}/IRC>** {messageContent}");
         }
     }
 
