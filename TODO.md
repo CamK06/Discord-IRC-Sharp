@@ -1,2 +1,2 @@
 # TODO
-Nothing
+* Show message edits on IRC side
