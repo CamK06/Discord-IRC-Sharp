@@ -144,6 +144,13 @@ namespace Discord_IRC_Sharp
                 return Task.CompletedTask;
             irc.SendMessage(SendType.Message, ircChannel, ircMessage);
 
+            // Send attachments if applicable
+            if(message.Attachments != null) {
+                foreach(var attachment in message.Attachments) {
+                    irc.SendMessage(SendType.Message, ircChannel, $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{message.Author.Username}> {attachment.Url}");
+                }
+            }
+
             return Task.CompletedTask;
         }
 
