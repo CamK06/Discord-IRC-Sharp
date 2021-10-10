@@ -26,6 +26,7 @@ namespace Discord_IRC_Sharp
         static SocketGuild guild;
         static Dictionary<string, SocketTextChannel> discordChannels = new Dictionary<string, SocketTextChannel>();
         static bool isDiscordReady;
+        static Dictionary<string, int> discordColours = new Dictionary<string, int>();
 
         public async Task Run()
         {
@@ -111,13 +112,19 @@ namespace Discord_IRC_Sharp
             if(!config.channels.ContainsValue(message.Channel.Id))
                 return Task.CompletedTask;
 
+            // Get the username colour for IRC
+            int colour = 0;
+            discordColours.TryGetValue(message.Author.Username, out colour);
+            if(colour == 0) { // We didn't get a value
+                colour = new Random().Next(1, 15);
+                discordColours.Add(message.Author.Username, colour);
+            }
+
             // Send the message to IRC
             string ircChannel = config.channels.FirstOrDefault(x => x.Value == message.Channel.Id).Key;
-            if(ircChannel == null) { // If we failed to get the IRC channel
-                Log.Write($"IRC channel for \"{message.Channel.Name}\" on Discord does not exist!");
+            if(ircChannel == null) // If we failed to get the IRC channel
                 return Task.CompletedTask;
-            }
-            irc.SendMessage(SendType.Message, ircChannel, $"<{message.Author.Username}> {message.Content}");
+            irc.SendMessage(SendType.Message, ircChannel, $"<{colour}{message.Author.Username}> {message.Content}");
 
             return Task.CompletedTask;
         }
