@@ -6,4 +6,10 @@
     <RootNamespace>Discord_IRC_Sharp</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Discord.NET" Version="2.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="SmartIrc4net" Version="1.1.0" />
+  </ItemGroup>
+
 </Project>
