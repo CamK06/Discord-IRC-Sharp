@@ -139,7 +139,7 @@ namespace Discord_IRC_Sharp
             }
 
             // Send the message to Discord
-            discordChannel.SendMessageAsync($"**<{e.Data.Nick}/IRC>** {e.Data.Message}");
+            discordChannel.SendMessageAsync($"**<{e.Data.Nick}/IRC>** {e.Data.Message.Replace("@", "(at)")}");
         }
     }
 
