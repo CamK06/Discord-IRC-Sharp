@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
@@ -23,6 +24,7 @@ namespace Discord_IRC_Sharp
         // Discord
         static DiscordSocketClient discord;
         static SocketGuild guild;
+        static Dictionary<string, SocketTextChannel> discordChannels = new Dictionary<string, SocketTextChannel>();
         static bool isDiscordReady;
 
         public async Task Run()
@@ -53,6 +55,7 @@ namespace Discord_IRC_Sharp
                 isDiscordReady = true;
                 return Task.CompletedTask;
             };
+            discord.MessageReceived += OnDiscordMessage;
             await discord.LoginAsync(TokenType.Bot, config.discordToken);
             await discord.StartAsync();
 
@@ -68,9 +71,11 @@ namespace Discord_IRC_Sharp
                 Log.Write("Successfully found Discord server: " + guild.Name);
 
             foreach(var channel in config.channels) {
-                var discordChannel = (SocketTextChannel)discord.GetChannel(channel.Value);
-                if(discordChannel != null) 
+                SocketTextChannel discordChannel = (SocketTextChannel)discord.GetChannel(channel.Value);
+                if(discordChannel != null) {
                     Log.Write("Found Discord channel: " + discordChannel.Name);
+                    discordChannels.Add(channel.Key, discordChannel);
+                }
                 else
                     Log.Write("Could not find Discord channel: " + channel.Value);
             }
@@ -95,9 +100,39 @@ namespace Discord_IRC_Sharp
             await Task.Delay(-1);   // This shouldn't be reached (I think) but it's here just in case
         }
 
+        private Task OnDiscordMessage(SocketMessage message)
+        {
+            // If the message was from a bot
+            // TODO: Make this configurable and only check for self if disabled
+            if(message.Author.IsBot)
+                return Task.CompletedTask;
+
+            // If the message was sent in a channel we don't care about
+            if(!config.channels.ContainsValue(message.Channel.Id))
+                return Task.CompletedTask;
+
+            // Send the message to IRC
+            string ircChannel = config.channels.FirstOrDefault(x => x.Value == message.Channel.Id).Key;
+            if(ircChannel == null) { // If we failed to get the IRC channel
+                Log.Write($"IRC channel for \"{message.Channel.Name}\" on Discord does not exist!");
+                return Task.CompletedTask;
+            }
+            irc.SendMessage(SendType.Message, ircChannel, $"<{message.Author.Username}> {message.Content}");
+
+            return Task.CompletedTask;
+        }
+
         private static void OnIRCMessage(object sender, IrcEventArgs e)
         {
-            Console.WriteLine(e.Data.Message);
+            // Get the associated Discord channel
+            SocketTextChannel discordChannel = discordChannels[e.Data.Channel];
+            if(discordChannel == null) { 
+                Log.Write($"Could not get Discord channel for #{e.Data.Channel} on IRC");
+                return;
+            }
+
+            // Send the message to Discord
+            discordChannel.SendMessageAsync($"**<{e.Data.Nick}/IRC>** {e.Data.Message}");
         }
     }
 
