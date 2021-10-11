@@ -131,12 +131,12 @@ namespace Discord_IRC_Sharp
             int colour = 0;
             discordColours.TryGetValue(message.Author.Username, out colour);
             if(colour == 0) { // We didn't get a value
-                colour = new Random().Next(1, 15);
+                colour = new Random().Next(2, 13);
                 discordColours.Add(message.Author.Username, colour);
             }
 
             // Store the message content for it to be modified later
-            string ircMessage = $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{message.Author.Username}> {message.Content}";
+            string ircMessage = WithCleanEmoteNames($"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{message.Author.Username}> {message.Content}");
 
             // Send the message to IRC
             string ircChannel = config.channels.FirstOrDefault(x => x.Value == message.Channel.Id).Key;
@@ -159,7 +159,7 @@ namespace Discord_IRC_Sharp
         private static void OnIRCMessage(object sender, IrcEventArgs e)
         {
             // Store the message content for it to be modified later
-            string messageContent = e.Data.Message.Replace("@", "(at)");
+            string messageContent = WithEmotes(e.Data.Message.Replace("@", "(at)"));
 
             // Check for user mentions
             if(config.formatting.ircMentionsDiscord) {
@@ -194,6 +194,41 @@ namespace Discord_IRC_Sharp
                 }
                 discordChannel.SendMessageAsync($"{config.formatting.discordPrefix.Replace("%u", e.Data.Nick)} {messageContent}");
             }
+        }
+
+        // This whole thing sucks but I guess it works
+        private static string WithEmotes(string message)
+        {
+            string[] words = message.Split(' ');
+            foreach(string word in words) {
+                if(word.Contains(":")) { // If we're possibly dealing with an emote
+                    Emote emote = GetEmoteFromName(word.Replace(":", ""));
+                    if(emote != null)
+                        message = message.Replace(word, $"{emote}");
+                }
+            }
+
+            return message;
+        }
+
+        private static string WithCleanEmoteNames(string message)
+        {
+            string[] words = message.Split(' ');
+            foreach(string word in words) {
+                if(word.Contains("<")) {
+                    Emote.TryParse(word, out Emote emote);
+                    if(emote != null)
+                        message = message.Replace(word, $":{emote.Name}:");
+                }
+            }
+
+            return message;
+        }
+
+        // AAAAAAAAAAAAAA THIS CODE SUCKS
+        private static Emote GetEmoteFromName(string name)
+        {
+            return discord.GetGuild(config.discordServerId).GetEmotesAsync().Result.FirstOrDefault(x => x.Name.ToLower() == name.ToLower());
         }
     }
 
