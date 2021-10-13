@@ -143,8 +143,15 @@ namespace Discord_IRC_Sharp
             if(ircChannel == null) // If we failed to get the IRC channel
                 return Task.CompletedTask;
 
-            if(!string.IsNullOrWhiteSpace(message.Content))
-                irc.SendMessage(SendType.Message, ircChannel, ircMessage);
+            if(!string.IsNullOrWhiteSpace(message.Content)) {
+                if(message.Content.Contains('\n')) {
+                    foreach(string line in message.Content.Split('\n'))
+                        if(!string.IsNullOrWhiteSpace(line))
+                            irc.SendMessage(SendType.Message, ircChannel, $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{message.Author.Username}> {line}");
+                }
+                else
+                    irc.SendMessage(SendType.Message, ircChannel, ircMessage);
+            }
 
             // Send attachments if applicable
             if(message.Attachments != null) {
