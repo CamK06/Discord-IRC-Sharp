@@ -110,6 +110,7 @@ namespace Discord_IRC_Sharp
 
             // Listen for messages
             irc.OnChannelMessage += OnIRCMessage;
+            irc.CtcpVersion = "Discord-IRC-Sharp by Cam K. https://github.com/CamK06/Discord-IRC-Sharp";
             Log.Write("Connected!");
             irc.Listen(true);
         
