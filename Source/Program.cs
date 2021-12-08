@@ -209,7 +209,7 @@ namespace Discord_IRC_Sharp
         {
             string[] words = message.Split(' ');
             foreach(string word in words) {
-                if(word.Contains(":")) { // If we're possibly dealing with an emote
+                if(word.StartsWith(":") && word.EndsWith(":")) { // If we're possibly dealing with an emote
                     Emote emote = GetEmoteFromName(word.Replace(":", ""));
                     if(emote != null)
                         message = message.Replace(word, $"{emote}");
