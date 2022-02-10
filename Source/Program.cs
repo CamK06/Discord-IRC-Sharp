@@ -87,7 +87,7 @@ namespace Discord_IRC_Sharp
                             webhook = await discordChannel.CreateWebhookAsync("Discord-IRC-Relay");
                         
                         // Add the webhook
-                        discordWebhooks.Add(channel.Key, new DiscordWebhookClient(webhook));
+                        discordWebhooks.Add(channel.Key.ToLower(), new DiscordWebhookClient(webhook));
                     }
                     else
                         discordChannels.Add(channel.Key, discordChannel);
@@ -190,7 +190,7 @@ namespace Discord_IRC_Sharp
                     avatarUrl = user.GetAvatarUrl();
 
                 // Send the message
-                discordWebhooks[e.Data.Channel].SendMessageAsync(messageContent, username: e.Data.Nick, avatarUrl: avatarUrl);
+                discordWebhooks[e.Data.Channel.ToLower()].SendMessageAsync(messageContent, username: e.Data.Nick, avatarUrl: avatarUrl);
                 return;
             }
             else {
