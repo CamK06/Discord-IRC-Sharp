@@ -27,6 +27,7 @@ namespace Discord_IRC_Sharp
         static SocketGuild guild;
         static Dictionary<string, SocketTextChannel> discordChannels = new Dictionary<string, SocketTextChannel>();
         static Dictionary<string, DiscordWebhookClient> discordWebhooks = new Dictionary<string, DiscordWebhookClient>();
+        static Dictionary<string, ulong> discordWebhookIDs = new Dictionary<string, ulong>();
         static Dictionary<ulong, string> webhookAvatars = new Dictionary<ulong, string>();
         static bool isDiscordReady;
         static Dictionary<string, int> discordColours = new Dictionary<string, int>();
@@ -88,6 +89,7 @@ namespace Discord_IRC_Sharp
                         
                         // Add the webhook
                         discordWebhooks.Add(channel.Key.ToLower(), new DiscordWebhookClient(webhook));
+                        discordWebhookIDs.Add(channel.Key.ToLower(), webhook.Id);
                     }
                     else
                         discordChannels.Add(channel.Key, discordChannel);
@@ -120,9 +122,10 @@ namespace Discord_IRC_Sharp
         private Task OnDiscordMessage(SocketMessage message)
         {
             // If the message was from a bot
-            // TODO: Make this configurable and only check for self if disabled
-            if(message.Author.IsBot)
-                return Task.CompletedTask;
+            // TODO: Make this configurable
+            if(message.Author.IsWebhook)
+                if(discordWebhookIDs.ContainsValue((message.Author).Id))
+                    return Task.CompletedTask;
 
             // If the message was sent in a channel we don't care about
             if(!config.channels.ContainsValue(message.Channel.Id))
