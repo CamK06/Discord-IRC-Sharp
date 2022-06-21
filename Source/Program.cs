@@ -115,7 +115,11 @@ namespace Discord_IRC_Sharp
             irc.CtcpVersion = "Discord-IRC-Sharp by Cam K. https://github.com/CamK06/Discord-IRC-Sharp";
             Log.Write("Connected!");
             irc.Listen(true);
-        
+
+            // Nickserv
+            if(config.useNickServ)
+                irc.RfcPrivmsg("NickServ", $"IDENTIFY {config.nickServPass}", Priority.Medium);
+
             await Task.Delay(-1);   // This shouldn't be reached (I think) but it's here just in case
         }
 
@@ -253,6 +257,8 @@ namespace Discord_IRC_Sharp
         public string IRCNickname { get; set; } = "Discord-IRC";
         public string IRCIp { get; set; } = "irc.example.com";
         public int IRCport { get; set; } = 6667;
+        public bool useNickServ { get; set; } = false;
+        public string nickServPass { get; set; } = "NONE";
         public Dictionary<string, ulong> channels { get; set; } = new Dictionary<string, ulong>();
         public FormattingConfig formatting { get; set; } = new FormattingConfig();
     }
