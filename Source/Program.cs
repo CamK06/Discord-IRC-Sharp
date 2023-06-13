@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
@@ -160,6 +162,17 @@ namespace Discord_IRC_Sharp
                     irc.SendMessage(SendType.Message, ircChannel, ircMessage);
             }
 
+            // Search for links within the message
+            HttpClient client = new HttpClient();
+            foreach(string word in message.Content.Split(' ')) {
+                if(!Uri.IsWellFormedUriString(word, UriKind.Absolute))
+                    break;
+                
+                HttpResponseMessage msg = client.GetAsync(word).Result;
+                if(msg.StatusCode == HttpStatusCode.OK)
+                    irc.SendMessage(SendType.Message, ircChannel, $"^ [{msg.Content.Headers.ContentType}] ({msg.Content.Headers.ContentLength/1000.0f}KiB)");
+            }
+
             return Task.CompletedTask;
         }
 
@@ -203,10 +216,25 @@ namespace Discord_IRC_Sharp
             }
 
             // Send attachments if applicable
+            HttpClient client = new HttpClient();
+            HttpResponseMessage msg;
             if(message.Attachments != null) {
                 foreach(var attachment in message.Attachments) {
                     irc.SendMessage(SendType.Message, ircChannel, $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{username}> {attachment.Url}");
+                    msg = client.GetAsync(attachment.Url).Result;
+                    if(msg.StatusCode == HttpStatusCode.OK)
+                        irc.SendMessage(SendType.Message, ircChannel, $"^ [{msg.Content.Headers.ContentType}] ({msg.Content.Headers.ContentLength/1000.0f}KiB)");
                 }
+            }
+
+            // Search for links within the message
+            foreach(string word in message.Content.Split(' ')) {
+                if(!Uri.IsWellFormedUriString(word, UriKind.Absolute))
+                    break;
+                
+                msg = client.GetAsync(word).Result;
+                if(msg.StatusCode == HttpStatusCode.OK && !msg.Content.Headers.ContentType.ToString().Contains("text"))
+                    irc.SendMessage(SendType.Message, ircChannel, $"^ [{msg.Content.Headers.ContentType}] ({msg.Content.Headers.ContentLength/1000.0f}KiB)");
             }
 
             return Task.CompletedTask;
