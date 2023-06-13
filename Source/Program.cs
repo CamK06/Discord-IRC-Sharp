@@ -61,6 +61,7 @@ namespace Discord_IRC_Sharp
                 return Task.CompletedTask;
             };
             discord.MessageReceived += OnDiscordMessage;
+            discord.MessageUpdated += OnMessageUpdated;
             await discord.LoginAsync(TokenType.Bot, config.discordToken);
             await discord.StartAsync();
 
@@ -98,7 +99,6 @@ namespace Discord_IRC_Sharp
                     Log.Write("Could not find Discord channel: " + channel.Value);
             }
 
-            
             // Connect to IRC server
             Log.Write("Connecting to IRC...");
             irc.Connect(config.IRCIp, config.IRCport);
@@ -123,6 +123,46 @@ namespace Discord_IRC_Sharp
             await Task.Delay(-1);   // This shouldn't be reached (I think) but it's here just in case
         }
 
+        private Task OnMessageUpdated(Cacheable<IMessage, ulong> cacheable, SocketMessage message, ISocketMessageChannel channel)
+        {
+            // If the message was from a bot, ignore it to avoid spam
+            if(message.Author.IsBot)
+                return Task.CompletedTask;
+
+            // If the message was in a channel we don't care about
+            if(!config.channels.ContainsValue(channel.Id))
+                return Task.CompletedTask;
+
+            // Get the username colour for IRC
+            string username = guild.GetUser(message.Author.Id).Nickname ?? message.Author.Username;
+            int colour = 0;
+            discordColours.TryGetValue(username, out colour);
+            if(colour == 0) { // We didn't get a value
+                colour = new Random().Next(2, 13);
+                discordColours.Add(username, colour);
+            }
+
+            // Store the message content for it to be modified later
+            string ircMessage = WithCleanEmoteNames($"<EDIT> <{(config.formatting.nicknameColours ? $"{colour}" : "")}{username}> {message.Content}");
+
+            // Send the message to IRC
+            string ircChannel = config.channels.FirstOrDefault(x => x.Value == message.Channel.Id).Key;
+            if(ircChannel == null) // If we failed to get the IRC channel
+                return Task.CompletedTask;
+
+            if(!string.IsNullOrWhiteSpace(message.Content)) {
+                if(message.Content.Contains('\n')) {
+                    foreach(string line in message.Content.Split('\n'))
+                        if(!string.IsNullOrWhiteSpace(line))
+                            irc.SendMessage(SendType.Message, ircChannel, $"<EDIT> <{(config.formatting.nicknameColours ? $"{colour}" : "")}{username}> {line}");
+                }
+                else
+                    irc.SendMessage(SendType.Message, ircChannel, ircMessage);
+            }
+
+            return Task.CompletedTask;
+        }
+
         private Task OnDiscordMessage(SocketMessage message)
         {
             // If the message was from a bot
@@ -136,15 +176,16 @@ namespace Discord_IRC_Sharp
                 return Task.CompletedTask;
 
             // Get the username colour for IRC
+            string username = guild.GetUser(message.Author.Id).Nickname ?? message.Author.Username;
             int colour = 0;
-            discordColours.TryGetValue(message.Author.Username, out colour);
+            discordColours.TryGetValue(username, out colour);
             if(colour == 0) { // We didn't get a value
                 colour = new Random().Next(2, 13);
-                discordColours.Add(message.Author.Username, colour);
+                discordColours.Add(username, colour);
             }
 
             // Store the message content for it to be modified later
-            string ircMessage = WithCleanEmoteNames($"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{message.Author.Username}> {message.Content}");
+            string ircMessage = WithCleanEmoteNames($"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{username}> {message.Content}");
 
             // Send the message to IRC
             string ircChannel = config.channels.FirstOrDefault(x => x.Value == message.Channel.Id).Key;
@@ -155,7 +196,7 @@ namespace Discord_IRC_Sharp
                 if(message.Content.Contains('\n')) {
                     foreach(string line in message.Content.Split('\n'))
                         if(!string.IsNullOrWhiteSpace(line))
-                            irc.SendMessage(SendType.Message, ircChannel, $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{message.Author.Username}> {line}");
+                            irc.SendMessage(SendType.Message, ircChannel, $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{username}> {line}");
                 }
                 else
                     irc.SendMessage(SendType.Message, ircChannel, ircMessage);
@@ -164,7 +205,7 @@ namespace Discord_IRC_Sharp
             // Send attachments if applicable
             if(message.Attachments != null) {
                 foreach(var attachment in message.Attachments) {
-                    irc.SendMessage(SendType.Message, ircChannel, $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{message.Author.Username}> {attachment.Url}");
+                    irc.SendMessage(SendType.Message, ircChannel, $"<{(config.formatting.nicknameColours ? $"{colour}" : "")}{username}> {attachment.Url}");
                 }
             }
 
