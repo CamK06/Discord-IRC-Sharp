@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using Meebey.SmartIrc4net;
 using Newtonsoft.Json;
@@ -164,13 +165,22 @@ namespace Discord_IRC_Sharp
 
             // Search for links within the message
             HttpClient client = new HttpClient();
+            HttpResponseMessage msg;
             foreach(string word in message.Content.Split(' ')) {
                 if(!Uri.IsWellFormedUriString(word, UriKind.Absolute))
                     break;
                 
-                HttpResponseMessage msg = client.GetAsync(word).Result;
-                if(msg.StatusCode == HttpStatusCode.OK)
+                msg = client.GetAsync(word).Result;
+                if(msg.StatusCode != HttpStatusCode.OK)
+                    continue;
+
+                if(!msg.Content.Headers.ContentType.ToString().Contains("text/html"))
                     irc.SendMessage(SendType.Message, ircChannel, $"^ [{msg.Content.Headers.ContentType}] ({msg.Content.Headers.ContentLength/1000.0f}KiB)");
+                else {
+                    string title = Regex.Match(msg.Content.ReadAsStringAsync().Result, @"\<title\b[^>]*\>\s*(?<Title>[\s\S]*?)\</title\>", RegexOptions.IgnoreCase).Groups["Title"].Value;   
+                    if(!string.IsNullOrWhiteSpace(title))
+                        irc.SendMessage(SendType.Message, ircChannel, $"^ {title}");
+                }
             }
 
             return Task.CompletedTask;
@@ -233,8 +243,16 @@ namespace Discord_IRC_Sharp
                     break;
                 
                 msg = client.GetAsync(word).Result;
-                if(msg.StatusCode == HttpStatusCode.OK && !msg.Content.Headers.ContentType.ToString().Contains("text"))
+                if(msg.StatusCode != HttpStatusCode.OK)
+                    continue;
+
+                if(!msg.Content.Headers.ContentType.ToString().Contains("text/html"))
                     irc.SendMessage(SendType.Message, ircChannel, $"^ [{msg.Content.Headers.ContentType}] ({msg.Content.Headers.ContentLength/1000.0f}KiB)");
+                else {
+                    string title = Regex.Match(msg.Content.ReadAsStringAsync().Result, @"\<title\b[^>]*\>\s*(?<Title>[\s\S]*?)\</title\>", RegexOptions.IgnoreCase).Groups["Title"].Value;   
+                    if(!string.IsNullOrWhiteSpace(title))
+                        irc.SendMessage(SendType.Message, ircChannel, $"^ {title}");
+                }
             }
 
             return Task.CompletedTask;
