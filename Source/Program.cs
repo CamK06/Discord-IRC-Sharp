@@ -86,9 +86,9 @@ namespace Discord_IRC_Sharp
                     // Add the channel or webhook according to the config
                     if(config.formatting.useWebhooks) {
                         // Get or create the webhook
-                        var webhook = discordChannel.GetWebhooksAsync().Result.FirstOrDefault(x => x.Name == "Discord-IRC-Relay");
+                        var webhook = discordChannel.GetWebhooksAsync().Result.FirstOrDefault(x => x.Name == "Shitcord-IRC-Relay");
                         if(webhook == null)
-                            webhook = await discordChannel.CreateWebhookAsync("Discord-IRC-Relay");
+                            webhook = await discordChannel.CreateWebhookAsync("Shitcord-IRC-Relay");
                         
                         // Add the webhook
                         discordWebhooks.Add(channel.Key.ToLower(), new DiscordWebhookClient(webhook));

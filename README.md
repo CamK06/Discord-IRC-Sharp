@@ -1,20 +1,20 @@
 
-# Discord-IRC-Sharp
+# Shitcord-IRC-Sharp
 
   
 
-Discord-IRC-Sharp is a simple IRC bridge for Discord written in C#, intended to replace similar node.js bridges because they're buggy and are written in JavaScript
+Shitcord-IRC-Sharp is a simple IRC bridge for Shitcord written in C#, intended to replace similar node.js bridges because they're buggy and are written in JavaScript (not nearly as buggy as Shitcord itself though, their devs are completely incompetent)
 
 ## Features
 * Customizable message formatting
 * Support for bridging multiple channels
 * Support for sending messages with webhooks
-* Webhooks inherit the avatar of Discord accounts under the same username as IRC
-* Discord usernames are (optionally) coloured on the IRC side
+* Webhooks inherit the avatar of Shitcord accounts under the same username as IRC
+* Shitcord usernames are (optionally) coloured on the IRC side
 
 ## Usage
 After you build the source as described below, run the program for the first time either with `dotnet` or by running the executable directly.
-A basic configuration file will be generated in `config.json`. Add your IRC server info, Discord token, the ID of your Discord server and the channels to bridge.
+A basic configuration file will be generated in `config.json`. Add your IRC server info, Shitcord token, the ID of your Shitcord server and the channels to bridge.
 
 Channels are formatted as follows: 
 
@@ -24,7 +24,7 @@ Channels are formatted as follows:
 	"#tech": DISCORDCHANNELID
 }
 ```
-Once your configuration file is populated with all of the correct info, run the program once more. It should output info about finding the Discord channels, joining IRC, etc. If instead you get a message stating that it failed to connect to IRC, Discord, or find channels, double check that all values in your configuration are correct.
+Once your configuration file is populated with all of the correct info, run the program once more. It should output info about finding the Shitcord channels, joining IRC, etc. If instead you get a message stating that it failed to connect to IRC, Shitcord, or find channels, double check that all values in your configuration are correct.
 
 If the problem persists and you're absolutely sure your configuration is correct, [open an issue](https://github.com/CamK06/Discord-IRC-Sharp/issues/new) providing as much information as possible.
 
