@@ -263,6 +263,26 @@ namespace Discord_IRC_Sharp
             // Store the message content for it to be modified later
             string messageContent = WithEmotes(e.Data.Message.Replace("@", "(at)"));
 
+            // Search for links within the message to send info to other IRC users
+            HttpClient client = new HttpClient();
+            HttpResponseMessage msg;
+            foreach(string word in messageContent.Split(' ')) {
+                if(!Uri.IsWellFormedUriString(word, UriKind.Absolute))
+                    break;
+                
+                msg = client.GetAsync(word).Result;
+                if(msg.StatusCode != HttpStatusCode.OK)
+                    continue;
+
+                if(!msg.Content.Headers.ContentType.ToString().Contains("text/html"))
+                    irc.SendMessage(SendType.Message, e.Data.Channel, $"^ [{msg.Content.Headers.ContentType}] ({msg.Content.Headers.ContentLength/1000.0f}KiB)");
+                else {
+                    string title = Regex.Match(msg.Content.ReadAsStringAsync().Result, @"\<title\b[^>]*\>\s*(?<Title>[\s\S]*?)\</title\>", RegexOptions.IgnoreCase).Groups["Title"].Value;   
+                    if(!string.IsNullOrWhiteSpace(title))
+                        irc.SendMessage(SendType.Message, e.Data.Channel, $"^ {title}");
+                }
+            }
+
             // Check for user mentions
             if(config.formatting.ircMentionsDiscord) {
                 string firstWord = e.Data.Message.Split(' ').FirstOrDefault();
