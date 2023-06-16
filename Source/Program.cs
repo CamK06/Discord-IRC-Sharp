@@ -241,6 +241,9 @@ namespace Discord_IRC_Sharp
             foreach(string word in message.Content.Split(' ')) {
                 if(!Uri.IsWellFormedUriString(word, UriKind.Absolute))
                     break;
+                Uri uri = new Uri(word);
+                if(!uri.IsWellFormedOriginalString() || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                    break;
                 
                 msg = client.GetAsync(word).Result;
                 if(msg.StatusCode != HttpStatusCode.OK)
@@ -268,6 +271,9 @@ namespace Discord_IRC_Sharp
             HttpResponseMessage msg;
             foreach(string word in messageContent.Split(' ')) {
                 if(!Uri.IsWellFormedUriString(word, UriKind.Absolute))
+                    break;
+                Uri uri = new Uri(word);
+                if((uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                     break;
                 
                 msg = client.GetAsync(word).Result;
