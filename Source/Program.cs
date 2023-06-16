@@ -306,11 +306,14 @@ namespace Discord_IRC_Sharp
                 // Get the avatar, if applicable
                 string avatarUrl = null;
                 SocketGuildUser user = discord.GetGuild(config.discordServerId).Users.FirstOrDefault(x => x.Username.ToLower() == e.Data.Nick.ToLower() || (x.Nickname != null && x.Nickname.ToLower() == e.Data.Nick.ToLower()));
-                if(user != null)
+                string shitcordNickname = null;
+                if(user != null) {
                     avatarUrl = user.GetAvatarUrl();
+                    shitcordNickname = user.Nickname;
+                }
 
                 // Send the message
-                discordWebhooks[e.Data.Channel.ToLower()].SendMessageAsync(messageContent, username: user.Nickname ?? e.Data.Nick, avatarUrl: avatarUrl);
+                discordWebhooks[e.Data.Channel.ToLower()].SendMessageAsync(messageContent, username: shitcordNickname ?? e.Data.Nick, avatarUrl: avatarUrl);
                 return;
             }
             else {
