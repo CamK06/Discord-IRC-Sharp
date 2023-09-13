@@ -305,7 +305,8 @@ namespace Discord_IRC_Sharp
             if(config.formatting.useWebhooks) {
                 // Get the avatar, if applicable
                 string avatarUrl = null;
-                SocketGuildUser user = discord.GetGuild(config.discordServerId).Users.FirstOrDefault(x => x.Username.ToLower() == e.Data.Nick.ToLower() || (x.Nickname != null && x.Nickname.ToLower() == e.Data.Nick.ToLower()));
+                // More AWFUL code
+                SocketGuildUser user = discord.GetGuild(config.discordServerId).Users.FirstOrDefault(x => ((x.GlobalName != null && x.GlobalName.ToLower() == e.Data.Nick.ToLower()) || (x.Nickname != null && x.Nickname.ToLower() == e.Data.Nick.ToLower()) || (x.Username.ToLower() == e.Data.Nick.ToLower())));
                 string shitcordNickname = null;
                 if(user != null) {
                     avatarUrl = user.GetAvatarUrl();
