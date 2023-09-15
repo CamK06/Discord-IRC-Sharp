@@ -36,3 +36,41 @@ If you have the "useWebhooks" config option enabled, you do NOT need to manually
 2. Change directories: ``cd Discord-IRC-Sharp``
 3. Build the code: ``dotnet build -c Release``
 4. The program should now be in the `bin/` directory, copy all of the program files to a directory of your choice. This will be where you run the program
+
+## Docker
+
+```bash
+docker build . -t discord-irc-sharp:latest
+docker run -d discord-irc-sharp:latest
+```
+
+Or with buildx:
+```bash
+docker buildx build \
+  --no-cache \
+  --platform linux/amd64 \
+  --tag discord-irc-sharp:latest .
+docker run -d discord-irc-sharp:latest
+```
+
+Or with docker-compose:
+Create and adapt `config.json` with the following contents:
+```json
+{
+  "discordToken": "TOKEN",
+  "discordServerId": 0,
+  "IRCNickname": "Discord-IRC",
+  "IRCIp": "irc.example.com",
+  "IRCport": 6667,
+  "useNickServ": false,
+  "nickServPass": "NONE",
+  "channels": {},
+  "formatting": {
+    "discordPrefix": "**<%u/IRC>**",
+    "nicknameColours": true,
+    "ircMentionsDiscord": false,
+    "useWebhooks": false
+  }
+}
+```
+``docker compose up -d``
